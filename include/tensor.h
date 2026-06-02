@@ -15,3 +15,8 @@ typedef struct {
     int size;  // total num elements
     DType dtype; 
 } Tensor;
+
+// prototypes
+Tensor* tensor_create_constant(int value, int *shape, int ndim);
+Tensor* tensor_create_rand(int *shape, int ndim);
+void tensor_free(Tensor *t);
