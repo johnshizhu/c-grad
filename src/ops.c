@@ -58,9 +58,44 @@ bool check_mul_compatible(Tensor *t1, Tensor *t2) { // does not check for broadc
 Tensor *matrix_product(Tensor *t1, Tensor *t2) {
     if (!check_mul_compatible(t1, t2)) return NULL; 
 
-    //TODO
+    int res_ndim = t1->ndim;
+    int *res_shape = malloc(res_ndim * sizeof(int));
+    res_shape[res_ndim-1] = t2->shape[res_ndim-1];
+    res_shape[res_ndim-2] = t1->shape[res_ndim-2];
+    for (int i = 0; i < res_ndim-2; i++) {
+        res_shape[i] = t1->shape[i];
+    }
+    Tensor *res = tensor_create_constant(0, res_shape, res_ndim);
 
-    return NULL;
+    int batch_count = 1; // calculating total batch counts
+    for (int i = 0; i < res_ndim-2; i++) {
+        batch_count = batch_count * res_shape[i];
+    }
+
+    // calculate slice_sizes for t1, t2, and res tensors. 
+    int t1_slice_size = t1->shape[t1->ndim-1] * t1->shape[t1->ndim-2];
+    int t2_slice_size = t2->shape[t2->ndim-1] * t2->shape[t2->ndim-2];
+    int res_slice_size = res->shape[res->ndim-1] * res->shape[res->ndim-2];
+
+    int inner_dim = t1->shape[t1->ndim-1]; // inner dimension
+
+    for (int batch_idx = 0; batch_idx < batch_count; batch_idx++) { // looping over batches 
+        //2d matrix multiplication
+        for (int t1_row = 0; t1_row < t1->shape[t1->ndim-2]; t1_row++) { // loop over t1 rows
+            for (int t2_column = 0; t2_column < t2->shape[t2->ndim-1]; t2_column++) { // loop over t2 columns
+                float sum = 0.0;
+                for (int j = 0; j < inner_dim; j++) { // looping over number of inner dim values (same for t1 and t2)
+                    int t1_data_index = (batch_idx * t1_slice_size) + (t1_row * t1->shape[t1->ndim-1]) + j;
+                    int t2_data_index = (batch_idx * t2_slice_size) + (j * t2->shape[t2->ndim-1]) + t2_column;  
+                    sum = sum + (t1->data[t1_data_index] * t2->data[t2_data_index]);
+                }
+                int res_data_index = (batch_idx * res_slice_size) + (t1_row * res->shape[res_ndim-1]) + t2_column; 
+                res->data[res_data_index] = sum;
+            }
+        }
+    }
+
+    return res;
 };
 
 
