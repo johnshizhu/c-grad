@@ -2,6 +2,16 @@
 #include <stdlib.h>
 
 
+int* fresh_strides(int *shape, int ndim) {
+    int *strides = malloc(ndim * sizeof(int));
+    int cur = 1;
+    for (int i = ndim-1; i >= 0; i--) {
+        strides[i] = cur; 
+        cur = cur * shape[i]; 
+    }
+    return strides;
+}
+
 Tensor* tensor_create_constant(int value, int *shape, int ndim) {
     int size = 1;
     for (int i = 0; i < ndim; i++) {
@@ -24,6 +34,8 @@ Tensor* tensor_create_constant(int value, int *shape, int ndim) {
         data_ptr[i] = value; 
     }
     tensor_ptr->data = data_ptr;
+
+    tensor_ptr->strides = fresh_strides(tensor_ptr->shape, tensor_ptr->ndim);
 
     return tensor_ptr;
 };
@@ -51,12 +63,15 @@ Tensor* tensor_create_rand(int *shape, int ndim) {
     }
     tensor_ptr->data = data_ptr;
 
+    tensor_ptr->strides = fresh_strides(tensor_ptr->shape, tensor_ptr->ndim);
+
     return tensor_ptr;  
 };
 
 void tensor_free(Tensor *t) {
     free(t->data);
     free(t->shape);
+    free(t->strides);
     free(t); 
 };
 

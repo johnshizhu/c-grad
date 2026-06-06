@@ -100,5 +100,12 @@ Tensor *matrix_product(Tensor *t1, Tensor *t2) {
 
 
 
+Tensor *broadcast_tensor(Tensor *t) {
+
+
+    
+};
+
+
 
 

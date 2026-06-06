@@ -11,6 +11,7 @@ typedef enum {
 typedef struct { 
     float *data; // pointer to data 
     int *shape; // pointer to shape 
+    int *strides; // pointer to stride
     int ndim;  // number of dims 
     int size;  // total num elements
     DType dtype; 
