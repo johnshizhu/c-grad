@@ -5,6 +5,10 @@
 #include <stdbool.h>
 
 
+
+
+
+
 bool check_shape_match(Tensor *t1, Tensor *t2) {
     if (t1->ndim != t2->ndim) return false;
     if (t1->size != t2->size) return false; 
@@ -17,6 +21,9 @@ bool check_shape_match(Tensor *t1, Tensor *t2) {
 Tensor *elementwise_add(Tensor *t1, Tensor *t2) {
     if (!check_shape_match(t1, t2)) return NULL;  
     Tensor *res = tensor_create_constant(0, t1->shape, t1->ndim);
+
+
+
 
     for (int i = 0; i < t1->size; i++) {
         res->data[i] = t1->data[i] + t2->data[i]; 
@@ -103,7 +110,7 @@ Tensor *matrix_product(Tensor *t1, Tensor *t2) {
 Tensor *broadcast_tensor(Tensor *t) {
 
 
-    
+
 };
 
 
