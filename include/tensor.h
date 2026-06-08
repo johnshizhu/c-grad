@@ -1,6 +1,4 @@
-
-
-
+#include <stdbool.h>
 
 
 typedef enum { 
@@ -15,6 +13,7 @@ typedef struct {
     int ndim;  // number of dims 
     int size;  // total num elements
     DType dtype; 
+    bool is_view; 
 } Tensor;
 
 
@@ -27,6 +26,7 @@ static inline float tensor_get(Tensor *t, int *index) {
     return t->data[offset];
 };
 
+
 static inline void tensor_set(Tensor *t, int *index, float value) {
     int offset = 0; // offset is the dot product of the index and strides vectors
     for (int dim = 0; dim < t->ndim; dim++) {
@@ -37,6 +37,9 @@ static inline void tensor_set(Tensor *t, int *index, float value) {
 
 
 // prototypes
-Tensor* tensor_create_constant(int value, int *shape, int ndim);
-Tensor* tensor_create_rand(int *shape, int ndim);
+Tensor *tensor_create_constant(int value, int *shape, int ndim);
+Tensor *tensor_create_rand(int *shape, int ndim);
+Tensor *tensor_view(Tensor *t); 
+Tensor *tensor_copy(Tensor *t); 
+Tensor *tensor_broadcast(Tensor *t, int dim, int broadcast_val); 
 void tensor_free(Tensor *t);

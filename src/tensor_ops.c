@@ -5,10 +5,6 @@
 #include <stdbool.h>
 
 
-
-
-
-
 bool check_shape_match(Tensor *t1, Tensor *t2) {
     if (t1->ndim != t2->ndim) return false;
     if (t1->size != t2->size) return false; 
@@ -18,30 +14,42 @@ bool check_shape_match(Tensor *t1, Tensor *t2) {
     return true; 
 }
 
+
+void build_index(int *index, int flat_index, int *shape, int ndim) {
+    for (int dim = ndim-1; dim >= 0; dim--) {
+        index[dim] = flat_index % shape[dim];
+        flat_index = flat_index / shape[dim];
+    }
+}
+
+
 Tensor *elementwise_add(Tensor *t1, Tensor *t2) {
     if (!check_shape_match(t1, t2)) return NULL;  
     Tensor *res = tensor_create_constant(0, t1->shape, t1->ndim);
 
-
-
-
+    int index[t1->ndim];
     for (int i = 0; i < t1->size; i++) {
-        res->data[i] = t1->data[i] + t2->data[i]; 
+        build_index(index, i, t1->shape, t1->ndim);
+        tensor_set(res, index, (tensor_get(t1, index) + tensor_get(t2, index)));
     }
-
+    
     return res; 
 };
+
 
 Tensor *hadamard_product(Tensor *t1, Tensor *t2) {
     if (!check_shape_match(t1, t2)) return NULL;  
     Tensor *res = tensor_create_constant(0, t1->shape, t1->ndim);
 
+    int index[t1->ndim];
     for (int i = 0; i < t1->size; i++) {
-        res->data[i] = t1->data[i] * t2->data[i];
+        build_index(index, i, t1->shape, t1->ndim);
+        tensor_set(res, index, (tensor_get(t1, index) * tensor_get(t2, index)));
     }
 
-    return res;
+    return res; 
 };
+
 
 bool check_mul_compatible(Tensor *t1, Tensor *t2) { // does not check for broadcasting basic matrix product conditions check 
     int t1_ndim = t1->ndim;
@@ -61,6 +69,7 @@ bool check_mul_compatible(Tensor *t1, Tensor *t2) { // does not check for broadc
     
     return true; 
 };
+
 
 Tensor *matrix_product(Tensor *t1, Tensor *t2) {
     if (!check_mul_compatible(t1, t2)) return NULL; 
@@ -86,7 +95,13 @@ Tensor *matrix_product(Tensor *t1, Tensor *t2) {
 
     int inner_dim = t1->shape[t1->ndim-1]; // inner dimension
 
+    int t1_index[t1->ndim];
+    int t2_index[t2->ndim];
+    int res_index[res->ndim];
+
     for (int batch_idx = 0; batch_idx < batch_count; batch_idx++) { // looping over batches 
+        
+        
         //2d matrix multiplication
         for (int t1_row = 0; t1_row < t1->shape[t1->ndim-2]; t1_row++) { // loop over t1 rows
             for (int t2_column = 0; t2_column < t2->shape[t2->ndim-1]; t2_column++) { // loop over t2 columns
@@ -104,15 +119,6 @@ Tensor *matrix_product(Tensor *t1, Tensor *t2) {
 
     return res;
 };
-
-
-
-Tensor *broadcast_tensor(Tensor *t) {
-
-
-
-};
-
 
 
 

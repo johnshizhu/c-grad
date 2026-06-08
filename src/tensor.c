@@ -12,6 +12,7 @@ int* fresh_strides(int *shape, int ndim) {
     return strides;
 }
 
+
 Tensor* tensor_create_constant(int value, int *shape, int ndim) {
     int size = 1;
     for (int i = 0; i < ndim; i++) {
@@ -22,6 +23,7 @@ Tensor* tensor_create_constant(int value, int *shape, int ndim) {
     tensor_ptr->dtype = DTYPE_FP32; // hard coded dtype for now
     tensor_ptr->ndim = ndim;
     tensor_ptr->size = size; 
+    tensor_ptr->is_view = false; 
 
     int *shape_cpy = malloc(ndim * sizeof(int));
     for (int i = 0; i < ndim; i++) {
@@ -40,6 +42,7 @@ Tensor* tensor_create_constant(int value, int *shape, int ndim) {
     return tensor_ptr;
 };
 
+
 Tensor* tensor_create_rand(int *shape, int ndim) {
     int size = 1;
     for (int i = 0; i < ndim; i++) {
@@ -50,6 +53,7 @@ Tensor* tensor_create_rand(int *shape, int ndim) {
     tensor_ptr->dtype = DTYPE_FP32; // hard coded dtype for now
     tensor_ptr->ndim = ndim;
     tensor_ptr->size = size; 
+    tensor_ptr->is_view = false; 
 
     int *shape_cpy = malloc(ndim * sizeof(int));
     for (int i = 0; i < ndim; i++) {
@@ -68,8 +72,77 @@ Tensor* tensor_create_rand(int *shape, int ndim) {
     return tensor_ptr;  
 };
 
+
+Tensor *tensor_view(Tensor *t) { 
+    Tensor *new_t = malloc(sizeof(Tensor)); 
+    new_t->dtype = DTYPE_FP32; 
+    new_t->ndim = t->ndim; 
+    new_t->size = t->size; 
+    new_t->is_view = true; 
+
+    int *new_shape = malloc(new_t->ndim * sizeof(int)); 
+    for (int i = 0; i < new_t->ndim; i++) {
+        new_shape[i] = t->shape[i]; 
+    }
+    new_t->shape = new_shape; 
+
+    new_t->data = t->data; 
+
+    int *new_strides = malloc(new_t->ndim * sizeof(int)); 
+    for (int i = 0; i < new_t->ndim; i++) {
+        new_strides[i] = t->strides[i]; 
+    }
+    new_t->strides = new_strides; 
+
+    return new_t; 
+};
+
+
+Tensor *tensor_copy(Tensor *t) { // deep copy 
+    Tensor *new_t = malloc(sizeof(Tensor)); 
+    new_t->dtype = DTYPE_FP32; 
+    new_t->ndim = t->ndim; 
+    new_t->size = t->size; 
+    new_t->is_view = false; 
+
+    int *new_shape = malloc(new_t->ndim * sizeof(int)); 
+    for (int i = 0; i < new_t->ndim; i++) {
+        new_shape[i] = t->shape[i]; 
+    }
+    new_t->shape = new_shape; 
+
+    float *new_data = malloc(new_t->size * sizeof(float)); 
+    for (int i = 0; i < new_t->size; i++) {
+        new_data[i] = t->data[i]; 
+    }
+    new_t->data = new_data; 
+
+    int *new_strides = malloc(new_t->ndim * sizeof(int)); 
+    for (int i = 0; i < new_t->ndim; i++) {
+        new_strides[i] = t->strides[i]; 
+    }
+    new_t->strides = new_strides; 
+
+    return new_t; 
+};
+
+
+Tensor *tensor_broadcast(Tensor *t, int dim, int broadcast_val) { // set shape to broadcast_val and stride at dim to 0
+    if (t->shape[dim] != 1) {
+        return NULL; 
+    }
+    Tensor *new_t = tensor_view(t);
+    new_t->shape[dim] = broadcast_val; 
+    new_t->strides[dim] = 0; 
+    new_t->size = new_t->size * broadcast_val;
+
+    return new_t; 
+};
+
 void tensor_free(Tensor *t) {
-    free(t->data);
+    if (!t->is_view) {
+        free(t->data);
+    }
     free(t->shape);
     free(t->strides);
     free(t); 
