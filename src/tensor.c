@@ -73,6 +73,16 @@ Tensor* tensor_create_rand(int *shape, int ndim) {
 };
 
 
+void tensor_free(Tensor *t) {
+    if (!t->is_view) {
+        free(t->data);
+    }
+    free(t->shape);
+    free(t->strides);
+    free(t); 
+};
+
+
 Tensor *tensor_view(Tensor *t) { 
     Tensor *new_t = malloc(sizeof(Tensor)); 
     new_t->dtype = DTYPE_FP32; 
@@ -127,6 +137,55 @@ Tensor *tensor_copy(Tensor *t) { // deep copy
 };
 
 
+bool check_continguous(Tensor *t) { 
+    bool contiguous = true; 
+    int *exp_strides = fresh_strides(t->shape, t->ndim); 
+    for (int i = 0; i < t->ndim; i++) {
+        if (t->strides[i] != exp_strides[i]) { // non-continguous 
+            contiguous = false; 
+        }
+    }
+    free(exp_strides);
+    return contiguous; 
+};
+
+
+Tensor *tensor_continguous(Tensor *t) { // returns a continguous copy of a non-continguous tensor
+    bool contiguous = check_continguous(t); 
+    if (contiguous) {
+        return t; 
+    }
+
+    Tensor *new_t = malloc(sizeof(Tensor)); 
+    new_t->dtype = DTYPE_FP32; 
+    new_t->ndim = t->ndim; 
+    new_t->size = t->size; 
+    new_t->is_view = false; 
+
+    int *new_shape = malloc(new_t->ndim * sizeof(int)); 
+    for (int i = 0; i < new_t->ndim; i++) {
+        new_shape[i] = t->shape[i]; 
+    }
+    new_t->shape = new_shape; 
+
+    float *new_data = malloc(new_t->size * sizeof(float)); 
+    int index[t->ndim]; // holds the multi-dim index of values from t
+    for (int i = 0; i < new_t->size; i++) {
+        int cur_index = i; 
+        for (int dim = t->ndim-1; dim >=0; dim--) {
+            index[dim] = cur_index % t->shape[dim];
+            cur_index = cur_index / t->shape[dim]; 
+        }
+        new_data[i] = tensor_get(t, index); 
+    }
+    new_t->data = new_data; 
+
+    new_t->strides = fresh_strides(new_t->shape, new_t->ndim);
+
+    return new_t; 
+};
+
+
 Tensor *tensor_broadcast(Tensor *t, int dim, int broadcast_val) { // set shape to broadcast_val and stride at dim to 0
     if (t->shape[dim] != 1) {
         return NULL; 
@@ -139,14 +198,33 @@ Tensor *tensor_broadcast(Tensor *t, int dim, int broadcast_val) { // set shape t
     return new_t; 
 };
 
-void tensor_free(Tensor *t) {
-    if (!t->is_view) {
-        free(t->data);
+
+Tensor *tensor_reshape(Tensor *t, int *new_shape, int new_ndim) {
+    int new_size = 1; 
+    for (int i = 0; i < new_ndim; i++) {
+        new_size = new_size * new_shape[i]; 
     }
-    free(t->shape);
-    free(t->strides);
-    free(t); 
+    if (new_size != t->size) {
+        return NULL; 
+    }
+
+    bool contiguous = check_continguous(t); 
+
+    // TODO
+
+    if (contiguous) {
+
+    }
+
+    else {
+
+    }
+
 };
 
+
+Tensor *tensor_transpose() {
+
+};
 
 
