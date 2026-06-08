@@ -1,5 +1,6 @@
 #include "../include/tensor.h"
 #include <stdlib.h>
+#include <string.h>
 
 
 int* fresh_strides(int *shape, int ndim) {
@@ -143,6 +144,7 @@ bool check_continguous(Tensor *t) {
     for (int i = 0; i < t->ndim; i++) {
         if (t->strides[i] != exp_strides[i]) { // non-continguous 
             contiguous = false; 
+            break; 
         }
     }
     free(exp_strides);
@@ -200,27 +202,27 @@ Tensor *tensor_broadcast(Tensor *t, int dim, int broadcast_val) { // set shape t
 
 
 Tensor *tensor_reshape(Tensor *t, int *new_shape, int new_ndim) {
-    int new_size = 1; 
+    int new_size = 1;
     for (int i = 0; i < new_ndim; i++) {
-        new_size = new_size * new_shape[i]; 
+        new_size *= new_shape[i];
     }
     if (new_size != t->size) {
-        return NULL; 
+        return NULL;
     }
 
-    bool contiguous = check_continguous(t); 
+    Tensor *new_t = check_contiguous(t) ? tensor_view(t) : tensor_contiguous(t);
 
-    // TODO
+    free(new_t->shape);
+    new_t->shape = malloc(new_ndim * sizeof(int));
+    memcpy(new_t->shape, new_shape, new_ndim * sizeof(int));
 
-    if (contiguous) {
+    new_t->ndim = new_ndim;
 
-    }
+    free(new_t->strides);
+    new_t->strides = fresh_strides(new_t->shape, new_t->ndim);
 
-    else {
-
-    }
-
-};
+    return new_t;
+}
 
 
 Tensor *tensor_transpose() {
