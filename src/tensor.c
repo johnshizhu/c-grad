@@ -225,8 +225,57 @@ Tensor *tensor_reshape(Tensor *t, int *new_shape, int new_ndim) {
 }
 
 
-Tensor *tensor_transpose() {
+Tensor *tensor_axis_transpose(Tensor *t) { // simple 2d axis transpose, doesn't fit multi-dim
+    if (t->ndim > 2) {
+        return NULL; 
+    }
+    Tensor *new_t = tensor_view(t); 
+    int last_shape = new_t->shape[new_t->ndim-1];
+    int last_stride = new_t->strides[new_t->ndim-1];
 
+    new_t->shape[new_t->ndim-1] = new_t->shape[new_t->ndim-2];
+    new_t->strides[new_t->ndim-1] = new_t->strides[new_t->ndim-2];
+
+    new_t->shape[new_t->ndim-2] = last_shape; 
+    new_t->strides[new_t->ndim-2] = last_stride;  
+
+    return new_t; 
 };
+
+
+Tensor *tensor_permute(Tensor *t, int *perm, int perm_ndim) {
+    if (t->ndim != perm_ndim) {
+        return NULL; 
+    }
+    bool seen[perm_ndim]; // track indices in perm 
+    memset(seen, 0, perm_ndim * sizeof(bool));  
+    for (int i = 0; i < perm_ndim; i++) {
+        int perm_val = perm[i]; 
+        if (perm_val < 0 || perm_val >= perm_ndim) { // out of bounds
+            return NULL; 
+        } 
+        if (seen[perm_val]) { // already covered
+            return NULL;
+        }
+        seen[perm_val] = true; 
+    }
+
+    Tensor *new_t = tensor_view(t); 
+
+    for (int i = 0; i < perm_ndim; i++) {
+        new_t->shape[i] = t->shape[perm[i]];
+        new_t->strides[i] = t->strides[perm[i]]; 
+    }
+
+    return new_t; 
+};
+
+Tensor *tensor_transpose(Tensor *t) {
+    int perm[t->ndim];
+    for (int i = t->ndim-1; i >= 0; i--) {
+        perm[i] = t->ndim - 1 - i; 
+    }
+    return tensor_permute(t, perm, t->ndim); 
+}
 
 

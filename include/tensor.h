@@ -43,4 +43,7 @@ Tensor *tensor_view(Tensor *t);
 Tensor *tensor_copy(Tensor *t); 
 Tensor *tensor_broadcast(Tensor *t, int dim, int broadcast_val); 
 Tensor *tensor_reshape(Tensor *t, int *new_shape, int new_dim);
+Tensor *tensor_axis_transpose(Tensor *t); 
+Tensor *tensor_permute(Tensor *t, int *perm, int perm_ndim); 
+Tensor *tensor_transpose(Tensor *t); 
 void tensor_free(Tensor *t);
