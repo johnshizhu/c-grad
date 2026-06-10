@@ -226,7 +226,7 @@ Tensor *tensor_reshape(Tensor *t, int *new_shape, int new_ndim) {
 
 
 Tensor *tensor_axis_transpose(Tensor *t) { // simple 2d axis transpose, doesn't fit multi-dim
-    if (t->ndim > 2) {
+    if (t->ndim != 2) {
         return NULL; 
     }
     Tensor *new_t = tensor_view(t); 
