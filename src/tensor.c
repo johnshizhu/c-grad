@@ -138,11 +138,11 @@ Tensor *tensor_copy(Tensor *t) { // deep copy
 };
 
 
-bool check_continguous(Tensor *t) { 
+bool check_contiguous(Tensor *t) { 
     bool contiguous = true; 
     int *exp_strides = fresh_strides(t->shape, t->ndim); 
     for (int i = 0; i < t->ndim; i++) {
-        if (t->strides[i] != exp_strides[i]) { // non-continguous 
+        if (t->strides[i] != exp_strides[i]) { // non-contiguous 
             contiguous = false; 
             break; 
         }
@@ -152,8 +152,8 @@ bool check_continguous(Tensor *t) {
 };
 
 
-Tensor *tensor_continguous(Tensor *t) { // returns a continguous copy of a non-continguous tensor
-    bool contiguous = check_continguous(t); 
+Tensor *tensor_contiguous(Tensor *t) { // returns a contiguous copy of a non-contiguous tensor
+    bool contiguous = check_contiguous(t); 
     if (contiguous) {
         return t; 
     }

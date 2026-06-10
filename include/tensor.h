@@ -42,4 +42,5 @@ Tensor *tensor_create_rand(int *shape, int ndim);
 Tensor *tensor_view(Tensor *t); 
 Tensor *tensor_copy(Tensor *t); 
 Tensor *tensor_broadcast(Tensor *t, int dim, int broadcast_val); 
+Tensor *tensor_reshape(Tensor *t, int *new_shape, int new_dim);
 void tensor_free(Tensor *t);
