@@ -23,6 +23,62 @@ void build_index(int *index, int flat_index, int *shape, int ndim) {
 }
 
 
+typedef enum { REDUCE_SUM, REDUCE_MAX, REDUCE_MEAN } ReduceOp;
+
+Tensor *dim_reduce(Tensor *t, int dim, ReduceOp op) {
+    int *new_shape = malloc((t->ndim - 1) * sizeof(int)); 
+    int new_index = 0; 
+    for (int i = 0; i < t->ndim; i++) {
+        if (i == dim) {
+            continue; 
+        }
+        new_shape[new_index] = t->shape[i]; 
+        new_index++; 
+    }
+
+    // output tensor has same shape aside from the dim
+    Tensor *res = tensor_create_constant(0, new_shape, t->ndim-1);
+    free(new_shape); 
+
+    int res_index[res->ndim]; 
+    int in_index[t->ndim]; 
+    for (int i = 0; i < res->size; i++) { // for each reduction 
+        build_index(res_index, i, res->shape, res->ndim); // result index 
+
+        int out_pos = 0; // inject dim back in
+        for (int in_dim = 0; in_dim < t->ndim; in_dim++) {
+            if (in_dim == dim) {
+                continue; 
+            }
+            in_index[in_dim] = res_index[out_pos];
+            out_pos++; 
+        }
+        
+        in_index[dim] = 0;
+        float accum = (op == REDUCE_MAX) ? tensor_get(t, in_index) : 0.0f;
+
+        for (int k = 0; k < t->shape[dim]; k++) { // loop over injected dim
+            in_index[dim] = k; 
+            float val = tensor_get(t, in_index); 
+
+            switch (op) {
+                case REDUCE_SUM: accum += val; break; 
+                case REDUCE_MAX: accum = val > accum ? val : accum; break; 
+                case REDUCE_MEAN: accum += val; break; 
+            }
+        }
+
+        if (op == REDUCE_MEAN) {
+            accum /= t->shape[dim]; 
+        }
+
+        tensor_set(res, res_index, accum); 
+    }
+
+    return res; 
+}
+
+
 Tensor *elementwise_add(Tensor *t1, Tensor *t2) {
     if (!check_shape_match(t1, t2)) return NULL;  
     Tensor *res = tensor_create_constant(0, t1->shape, t1->ndim);
