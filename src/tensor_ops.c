@@ -3,6 +3,8 @@
 #include "../include/tensor.h"
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
+
 
 
 bool check_shape_match(Tensor *t1, Tensor *t2) {
@@ -127,7 +129,7 @@ bool check_mul_compatible(Tensor *t1, Tensor *t2) { // does not check for broadc
 };
 
 
-Tensor *matrix_product(Tensor *t1, Tensor *t2) {
+Tensor *matrix_product_old(Tensor *t1, Tensor *t2) { // outdated, pre stride 
     if (!check_mul_compatible(t1, t2)) return NULL; 
 
     int res_ndim = t1->ndim;
@@ -177,4 +179,36 @@ Tensor *matrix_product(Tensor *t1, Tensor *t2) {
 };
 
 
+Tensor *matrix_product(Tensor *t1, Tensor *t2) { // tinygrad style
+    if (!check_mul_compatible(t1, t2)) return NULL; 
+
+    // unsqueeze at leading and trailing ends
+    int *t1_new_shape = malloc((t1->ndim + 1) * sizeof(int));
+    int *t2_new_shape = malloc((t2->ndim + 1) * sizeof(int));
+    memcpy(t1_new_shape, t1->shape, t1->ndim * sizeof(int)); 
+    memcpy(t2_new_shape + 1, t2->shape, t2->ndim * sizeof(int)); 
+    t1_new_shape[t1->ndim] = 1; 
+    t2_new_shape[0] = 1; 
+    Tensor *t1_r = tensor_reshape(t1, t1_new_shape, t1->ndim + 1);
+    Tensor *t2_r = tensor_reshape(t2, t2_new_shape, t2->ndim + 1); 
+    free(t1_new_shape); 
+    free(t2_new_shape); 
+
+    // broad cast at leading and training ends
+    Tensor *t1_b = tensor_broadcast(t1_r, t1_r->ndim-1, t2_r->shape[t2_r->ndim-1]);
+    Tensor *t2_b = tensor_broadcast(t2_r, 0, t1_r->shape[0]);
+    tensor_free(t1_r); 
+    tensor_free(t2_r); 
+
+    // element-wise multiply 
+    Tensor *prod = hadamard_product(t1_b, t2_b); 
+    tensor_free(t1_b); 
+    tensor_free(t2_b); 
+
+    // summation reduce
+    Tensor *res = dim_reduce(prod, prod->ndim - 2, REDUCE_SUM);
+    tensor_free(prod); 
+
+    return res; 
+};
 
