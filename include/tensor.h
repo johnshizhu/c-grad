@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <../include/op.h> 
 
 
 typedef enum { 
@@ -6,14 +7,16 @@ typedef enum {
 } DType;
 
 
-typedef struct { 
-    float *data; // pointer to data 
-    int *shape; // pointer to shape 
-    int *strides; // pointer to stride
-    int ndim;  // number of dims 
-    int size;  // total num elements
-    DType dtype; 
-    bool is_view; 
+typedef struct Tensor {
+    float *data;
+    int *shape;
+    int *strides;
+    int ndim;
+    int size;
+    DType dtype;
+    bool is_view;
+    bool requires_grad;
+    struct Tensor *grad;
 } Tensor;
 
 
