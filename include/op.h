@@ -5,18 +5,28 @@ typedef struct Tensor Tensor;
 
 typedef enum { 
     ADD,
+    HADAMARD_PRODUCT, 
     MATRIX_PRODUCT, 
     REDUCE_ADD, 
+    RESHAPE, 
+    BROADCAST, 
 } OpType;
 
 
-typedef struct { 
-    OpType type; 
-    struct Op *parents[2]; // at max 2 inputs
-    int num_parents; 
-    Tensor *out; // result of the Op reading in the result of the parents
-} Op; 
+typedef union { 
+    struct { int dim; } reduce; 
+    struct { int *new_shape; int new_ndim } reshape; 
+    struct { int dim; int val; } broadcast; 
+} OpAux; 
 
+
+typedef struct Op {
+    OpType type;
+    struct Op *parents[2];
+    int num_parents;
+    Tensor *out;
+    OpAux aux; 
+} Op;
 // in the case that num_parents = 0, set the out field as raw tensor values
 
 

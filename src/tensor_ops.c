@@ -1,6 +1,7 @@
 
 
 #include "../include/tensor.h"
+#include "../include/tensor_ops.h"
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
@@ -24,8 +25,6 @@ void build_index(int *index, int flat_index, int *shape, int ndim) {
     }
 }
 
-
-typedef enum { REDUCE_SUM, REDUCE_MAX, REDUCE_MEAN } ReduceOp;
 
 Tensor *dim_reduce(Tensor *t, int dim, ReduceOp op) {
     int *new_shape = malloc((t->ndim - 1) * sizeof(int)); 
@@ -57,20 +56,20 @@ Tensor *dim_reduce(Tensor *t, int dim, ReduceOp op) {
         }
         
         in_index[dim] = 0;
-        float accum = (op == REDUCE_MAX) ? tensor_get(t, in_index) : 0.0f;
+        float accum = (op == MAX) ? tensor_get(t, in_index) : 0.0f;
 
         for (int k = 0; k < t->shape[dim]; k++) { // loop over injected dim
             in_index[dim] = k; 
             float val = tensor_get(t, in_index); 
 
             switch (op) {
-                case REDUCE_SUM: accum += val; break; 
-                case REDUCE_MAX: accum = val > accum ? val : accum; break; 
-                case REDUCE_MEAN: accum += val; break; 
+                case SUM: accum += val; break; 
+                case MAX: accum = val > accum ? val : accum; break; 
+                case MEAN: accum += val; break; 
             }
         }
 
-        if (op == REDUCE_MEAN) {
+        if (op == MEAN) {
             accum /= t->shape[dim]; 
         }
 
@@ -206,7 +205,7 @@ Tensor *matrix_product(Tensor *t1, Tensor *t2) { // tinygrad style
     tensor_free(t2_b); 
 
     // summation reduce
-    Tensor *res = dim_reduce(prod, prod->ndim - 2, REDUCE_SUM);
+    Tensor *res = dim_reduce(prod, prod->ndim - 2, SUM);
     tensor_free(prod); 
 
     return res; 
