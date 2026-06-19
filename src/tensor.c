@@ -3,6 +3,14 @@
 #include <string.h>
 
 
+void build_index(int *index, int flat_index, int *shape, int ndim) {
+    for (int dim = ndim-1; dim >= 0; dim--) {
+        index[dim] = flat_index % shape[dim];
+        flat_index = flat_index / shape[dim];
+    }
+}
+
+
 int* fresh_strides(int *shape, int ndim) {
     int *strides = malloc(ndim * sizeof(int));
     int cur = 1;
@@ -12,6 +20,20 @@ int* fresh_strides(int *shape, int ndim) {
     }
     return strides;
 }
+
+
+bool check_contiguous(Tensor *t) { 
+    bool contiguous = true; 
+    int *exp_strides = fresh_strides(t->shape, t->ndim); 
+    for (int i = 0; i < t->ndim; i++) {
+        if (t->strides[i] != exp_strides[i]) { // non-contiguous 
+            contiguous = false; 
+            break; 
+        }
+    }
+    free(exp_strides);
+    return contiguous; 
+};
 
 
 Tensor* tensor_create_constant(int value, int *shape, int ndim) {
@@ -25,6 +47,8 @@ Tensor* tensor_create_constant(int value, int *shape, int ndim) {
     tensor_ptr->ndim = ndim;
     tensor_ptr->size = size; 
     tensor_ptr->is_view = false; 
+    tensor_ptr->grad = NULL; 
+    tensor_ptr->requires_grad = false; 
 
     int *shape_cpy = malloc(ndim * sizeof(int));
     for (int i = 0; i < ndim; i++) {
@@ -55,6 +79,8 @@ Tensor* tensor_create_rand(int *shape, int ndim) {
     tensor_ptr->ndim = ndim;
     tensor_ptr->size = size; 
     tensor_ptr->is_view = false; 
+    tensor_ptr->grad = NULL; 
+    tensor_ptr->requires_grad = false; 
 
     int *shape_cpy = malloc(ndim * sizeof(int));
     for (int i = 0; i < ndim; i++) {
@@ -78,6 +104,9 @@ void tensor_free(Tensor *t) {
     if (!t->is_view) {
         free(t->data);
     }
+    if (t->grad != NULL) {
+        tensor_free(t->grad); 
+    }
     free(t->shape);
     free(t->strides);
     free(t); 
@@ -90,6 +119,8 @@ Tensor *tensor_view(Tensor *t) {
     new_t->ndim = t->ndim; 
     new_t->size = t->size; 
     new_t->is_view = true; 
+    new_t->requires_grad = t->requires_grad; 
+    new_t->grad = NULL; 
 
     int *new_shape = malloc(new_t->ndim * sizeof(int)); 
     for (int i = 0; i < new_t->ndim; i++) {
@@ -115,47 +146,66 @@ Tensor *tensor_copy(Tensor *t) { // deep copy
     new_t->ndim = t->ndim; 
     new_t->size = t->size; 
     new_t->is_view = false; 
+    new_t->requires_grad = t->requires_grad; 
 
     int *new_shape = malloc(new_t->ndim * sizeof(int)); 
-    for (int i = 0; i < new_t->ndim; i++) {
-        new_shape[i] = t->shape[i]; 
-    }
+    memcpy(new_shape, t->shape, t->ndim * sizeof(int)); 
     new_t->shape = new_shape; 
 
     float *new_data = malloc(new_t->size * sizeof(float)); 
-    for (int i = 0; i < new_t->size; i++) {
-        new_data[i] = t->data[i]; 
-    }
-    new_t->data = new_data; 
 
-    int *new_strides = malloc(new_t->ndim * sizeof(int)); 
-    for (int i = 0; i < new_t->ndim; i++) {
-        new_strides[i] = t->strides[i]; 
+    if (check_contiguous(t)) {
+        int *new_strides = malloc(new_t->ndim * sizeof(int)); 
+        memcpy(new_strides, t->strides, t->ndim * sizeof(int)); 
+        memcpy(new_data, t->data, t->size * sizeof(float)); 
+        new_t->strides = new_strides; 
+        new_t->data = new_data; 
     }
-    new_t->strides = new_strides; 
+    else {
+        int index[t->ndim];
+        for (int i = 0; i < t->size; i++) {
+            build_index(index, i, t->shape, t->ndim); 
+            new_data[i] = tensor_get(t, index); 
+        }
+        new_t->strides = fresh_strides(new_t->shape, new_t->ndim); 
+        new_t->data = new_data;
+    }
+
+    if (t->grad != NULL) { // deep copy of other grad
+        Tensor *new_grad = malloc(sizeof(Tensor)); 
+        new_grad->dtype = DTYPE_FP32; 
+        new_grad->ndim = t->grad->ndim; 
+        new_grad->size = t->grad->size; 
+        new_grad->is_view = t->grad->is_view; 
+        new_grad->requires_grad = t->grad->requires_grad; 
+        new_grad->grad = NULL; 
+
+        int *new_grad_shape = malloc(new_t->ndim * sizeof(int)); 
+        memcpy(new_grad_shape, new_t->shape, new_t->ndim * sizeof(int)); 
+        new_grad->shape = new_grad_shape; 
+
+        int *new_grad_strides = malloc(new_t->ndim * sizeof(int)); 
+        memcpy(new_grad_strides, new_t->strides, new_t->ndim * sizeof(int)); 
+        new_grad->strides = new_grad_strides; 
+
+        float *new_grad_data = malloc(new_t->size * sizeof(float)); 
+        memcpy(new_grad_data, t->grad->data, t->grad->size * sizeof(float)); 
+        new_grad->data = new_grad_data; 
+
+        new_t->grad = new_grad; 
+    }
+    else {
+        new_t->grad = NULL; 
+    }
 
     return new_t; 
-};
-
-
-bool check_contiguous(Tensor *t) { 
-    bool contiguous = true; 
-    int *exp_strides = fresh_strides(t->shape, t->ndim); 
-    for (int i = 0; i < t->ndim; i++) {
-        if (t->strides[i] != exp_strides[i]) { // non-contiguous 
-            contiguous = false; 
-            break; 
-        }
-    }
-    free(exp_strides);
-    return contiguous; 
 };
 
 
 Tensor *tensor_contiguous(Tensor *t) { // returns a contiguous copy of a non-contiguous tensor
     bool contiguous = check_contiguous(t); 
     if (contiguous) {
-        return t; 
+        return tensor_copy(t); 
     }
 
     Tensor *new_t = malloc(sizeof(Tensor)); 
@@ -163,6 +213,8 @@ Tensor *tensor_contiguous(Tensor *t) { // returns a contiguous copy of a non-con
     new_t->ndim = t->ndim; 
     new_t->size = t->size; 
     new_t->is_view = false; 
+    new_t->requires_grad = t->requires_grad; 
+    new_t->grad = NULL; 
 
     int *new_shape = malloc(new_t->ndim * sizeof(int)); 
     for (int i = 0; i < new_t->ndim; i++) {
@@ -183,6 +235,7 @@ Tensor *tensor_contiguous(Tensor *t) { // returns a contiguous copy of a non-con
     new_t->data = new_data; 
 
     new_t->strides = fresh_strides(new_t->shape, new_t->ndim);
+
 
     return new_t; 
 };

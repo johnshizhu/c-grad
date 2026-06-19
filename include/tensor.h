@@ -1,5 +1,8 @@
+#ifndef TENSOR_H
+#define TENSOR_H
+
 #include <stdbool.h>
-#include <../include/op.h> 
+#include "../include/op.h"
 
 
 typedef enum { 
@@ -40,13 +43,17 @@ static inline void tensor_set(Tensor *t, int *index, float value) {
 
 
 // prototypes
+void build_index(int *index, int flat_index, int *shape, int ndim);
 Tensor *tensor_create_constant(int value, int *shape, int ndim);
 Tensor *tensor_create_rand(int *shape, int ndim);
 Tensor *tensor_view(Tensor *t); 
 Tensor *tensor_copy(Tensor *t); 
+Tensor *tensor_contiguous(Tensor *t); 
 Tensor *tensor_broadcast(Tensor *t, int dim, int broadcast_val); 
 Tensor *tensor_reshape(Tensor *t, int *new_shape, int new_dim);
 Tensor *tensor_axis_transpose(Tensor *t); 
 Tensor *tensor_permute(Tensor *t, int *perm, int perm_ndim); 
 Tensor *tensor_transpose(Tensor *t); 
 void tensor_free(Tensor *t);
+
+#endif

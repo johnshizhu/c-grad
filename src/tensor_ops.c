@@ -7,7 +7,6 @@
 #include <string.h>
 
 
-
 bool check_shape_match(Tensor *t1, Tensor *t2) {
     if (t1->ndim != t2->ndim) return false;
     if (t1->size != t2->size) return false; 
@@ -15,14 +14,6 @@ bool check_shape_match(Tensor *t1, Tensor *t2) {
         if (t1->shape[dim] != t2->shape[dim]) return false; 
     }
     return true; 
-}
-
-
-void build_index(int *index, int flat_index, int *shape, int ndim) {
-    for (int dim = ndim-1; dim >= 0; dim--) {
-        index[dim] = flat_index % shape[dim];
-        flat_index = flat_index / shape[dim];
-    }
 }
 
 
@@ -125,56 +116,6 @@ bool check_mul_compatible(Tensor *t1, Tensor *t2) { // does not check for broadc
     }
     
     return true; 
-};
-
-
-Tensor *matrix_product_old(Tensor *t1, Tensor *t2) { // outdated, pre stride 
-    if (!check_mul_compatible(t1, t2)) return NULL; 
-
-    int res_ndim = t1->ndim;
-    int *res_shape = malloc(res_ndim * sizeof(int));
-    res_shape[res_ndim-1] = t2->shape[res_ndim-1];
-    res_shape[res_ndim-2] = t1->shape[res_ndim-2];
-    for (int i = 0; i < res_ndim-2; i++) {
-        res_shape[i] = t1->shape[i];
-    }
-    Tensor *res = tensor_create_constant(0, res_shape, res_ndim);
-
-    int batch_count = 1; // calculating total batch counts
-    for (int i = 0; i < res_ndim-2; i++) {
-        batch_count = batch_count * res_shape[i];
-    }
-
-    // calculate slice_sizes for t1, t2, and res tensors. 
-    int t1_slice_size = t1->shape[t1->ndim-1] * t1->shape[t1->ndim-2];
-    int t2_slice_size = t2->shape[t2->ndim-1] * t2->shape[t2->ndim-2];
-    int res_slice_size = res->shape[res->ndim-1] * res->shape[res->ndim-2];
-
-    int inner_dim = t1->shape[t1->ndim-1]; // inner dimension
-
-    int t1_index[t1->ndim];
-    int t2_index[t2->ndim];
-    int res_index[res->ndim];
-
-    for (int batch_idx = 0; batch_idx < batch_count; batch_idx++) { // looping over batches 
-        
-        
-        //2d matrix multiplication
-        for (int t1_row = 0; t1_row < t1->shape[t1->ndim-2]; t1_row++) { // loop over t1 rows
-            for (int t2_column = 0; t2_column < t2->shape[t2->ndim-1]; t2_column++) { // loop over t2 columns
-                float sum = 0.0;
-                for (int j = 0; j < inner_dim; j++) { // looping over number of inner dim values (same for t1 and t2)
-                    int t1_data_index = (batch_idx * t1_slice_size) + (t1_row * t1->shape[t1->ndim-1]) + j;
-                    int t2_data_index = (batch_idx * t2_slice_size) + (j * t2->shape[t2->ndim-1]) + t2_column;  
-                    sum = sum + (t1->data[t1_data_index] * t2->data[t2_data_index]);
-                }
-                int res_data_index = (batch_idx * res_slice_size) + (t1_row * res->shape[res_ndim-1]) + t2_column; 
-                res->data[res_data_index] = sum;
-            }
-        }
-    }
-
-    return res;
 };
 
 
