@@ -6,7 +6,6 @@ typedef struct Tensor Tensor;
 
 // Node in computation graphfor autograd
 
-
 typedef enum { 
     ADD,
     HADAMARD_PRODUCT, 
